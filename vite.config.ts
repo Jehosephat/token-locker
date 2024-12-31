@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'url'
 
 export default defineConfig({
+  base: '/token-locker/',
   plugins: [vue()],
   resolve: {
     alias: {
