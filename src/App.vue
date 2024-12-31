@@ -80,26 +80,37 @@
 
             <!-- Expanded View -->
             <div v-if="expandedTokens.has(token.id)" class="token-details">
-              <div class="details-grid">
-                <div class="detail-row">
-                  <span class="detail-label">Name:</span>
-                  <span class="detail-value">{{ token.name }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Created:</span>
-                  <span class="detail-value">{{ formatDate(token.created) }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Created By:</span>
-                  <span class="detail-value">{{ token.createdBy }}</span>
-                </div>
-                <div class="detail-row">
-                  <span class="detail-label">Expires:</span>
-                  <span class="detail-value">{{ formatDate(token.expires) || 'Never' }}</span>
-                </div>
-                <div v-if="token.isLocked && token.lockAuthority" class="detail-row">
-                  <span class="detail-label">Lock Authority:</span>
-                  <span class="detail-value lock-authority">{{ token.lockAuthority }}</span>
+              <div v-if="token.holds && token.holds.length > 0">
+                <h3 class="holds-title">Lock History</h3>
+                <div v-for="(hold, index) in token.holds" :key="index" class="hold-details">
+                  <div class="details-grid">
+                    <div class="detail-row">
+                      <span class="detail-label">Status:</span>
+                      <span class="detail-value" :class="{ 
+                        'status-active': !hold.expires || hold.expires > Date.now(),
+                        'status-expired': hold.expires && hold.expires <= Date.now()
+                      }">
+                        {{ !hold.expires ? 'Active (No Expiry)' : 
+                           hold.expires > Date.now() ? 'Active' : 'Expired' }}
+                      </span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Authority:</span>
+                      <span class="detail-value lock-authority">{{ hold.lockAuthority }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Created:</span>
+                      <span class="detail-value">{{ formatDate(hold.created) }}</span>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">Created By:</span>
+                      <span class="detail-value">{{ hold.createdBy }}</span>
+                    </div>
+                    <div v-if="hold.expires" class="detail-row">
+                      <span class="detail-label">Expires:</span>
+                      <span class="detail-value">{{ formatDate(hold.expires) }}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -113,7 +124,7 @@
                   {{ isProcessing && selectedToken?.id === token.id ? 'Processing...' : 'Lock Token' }}
                 </button>
                 <button 
-                  v-else
+                  v-else-if="token.holds?.some(hold => isHoldActive(hold))"
                   @click.stop="unlockToken(token)"
                   :disabled="isProcessing"
                   class="action-button unlock-button"
@@ -150,10 +161,12 @@ interface Token {
   instanceId: string
   balance: string
   isLocked: boolean
-  lockAuthority?: string
-  created?: number
-  createdBy?: string
-  expires?: number
+  holds?: Array<{
+    lockAuthority: string
+    created: number
+    createdBy: string
+    expires?: number
+  }>
 }
 
 const metamaskClient = new MetamaskConnectClient()
@@ -329,12 +342,18 @@ async function fetchTokens() {
           type: nft.type,
           additionalKey: nft.additionalKey,
           instanceId: instanceId,
-          balance: "1", // NFTs always have quantity 1
-          isLocked,
-          lockAuthority: lockHold?.lockAuthority,
-          created: lockHold?.created,
-          createdBy: lockHold?.createdBy,
-          expires: lockHold?.expires
+          balance: "1",
+          isLocked: nft.lockedHolds
+            ?.filter((hold: any) => hold.instanceId === instanceId)
+            ?.some((hold: any) => isHoldActive(hold)) ?? false,
+          holds: nft.lockedHolds
+            ?.filter((hold: any) => hold.instanceId === instanceId)
+            ?.map((hold: any) => ({
+              lockAuthority: hold.lockAuthority,
+              created: hold.created,
+              createdBy: hold.createdBy,
+              expires: hold.expires
+            }))
         }
       })
     })
@@ -484,6 +503,11 @@ function formatDate(timestamp?: number) {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// Helper function to check if a hold is active
+function isHoldActive(hold: { expires?: number }) {
+  return !hold.expires || hold.expires > Date.now()
 }
 </script>
 
@@ -820,5 +844,32 @@ function formatDate(timestamp?: number) {
 
 .modal-content .button {
   margin-top: 8px;
+}
+
+.holds-title {
+  font-size: 1.1em;
+  color: #333;
+  margin: 16px 0 12px 0;
+}
+
+.hold-details {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+}
+
+.hold-details:last-child {
+  margin-bottom: 0;
+}
+
+.status-active {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.status-expired {
+  color: #6c757d;
+  font-weight: 500;
 }
 </style> 
