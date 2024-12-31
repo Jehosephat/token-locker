@@ -4,6 +4,9 @@
     
     <!-- Address Input -->
     <div class="address-input">
+      <div class="input-header">
+        <button @click="showInstructions = true" class="info-button">ℹ️ How to Use</button>
+      </div>
       <div class="input-row">
         <input
           type="text"
@@ -21,6 +24,21 @@
         </button>
       </div>
       <p v-if="addressError" class="error-text">{{ addressError }}</p>
+    </div>
+
+    <!-- Instructions Modal -->
+    <div v-if="showInstructions" class="modal-overlay" @click="showInstructions = false">
+      <div class="modal-content" @click.stop>
+        <h2>How to Use Token Locker</h2>
+        <ol>
+          <li>Get your Gala address from the platform (format: client|...)</li>
+          <li>Import your Gala wallet seed phrase to MetaMask</li>
+          <li>Enter your Gala address into the input box above</li>
+          <li>Connect MetaMask using the "Connect Wallet" button</li>
+          <li>Unlock or lock tokens by clicking the lock or unlock buttons</li>
+        </ol>
+        <button @click="showInstructions = false" class="button">Close</button>
+      </div>
     </div>
 
     <!-- Wallet Connection -->
@@ -150,6 +168,7 @@ const targetAddress = ref('')
 const addressError = ref('')
 const isLoading = ref(false)
 const expandedTokens = ref(new Set<string>())
+const showInstructions = ref(false)
 
 const truncatedAddress = computed(() => {
   if (!walletAddress.value) return ''
@@ -736,5 +755,70 @@ function formatDate(timestamp?: number) {
   transition: background-color 0.2s;
   width: auto;
   min-width: 120px;
+}
+
+.input-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.info-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1em;
+  padding: 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+}
+
+.info-button:hover {
+  color: #333;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 24px;
+  border-radius: 8px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.modal-content ol {
+  margin: 0 0 20px 0;
+  padding-left: 24px;
+}
+
+.modal-content li {
+  margin-bottom: 12px;
+  line-height: 1.4;
+  color: #444;
+}
+
+.modal-content .button {
+  margin-top: 8px;
 }
 </style> 
