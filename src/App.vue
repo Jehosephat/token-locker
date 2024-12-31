@@ -234,27 +234,8 @@ async function connectWallet() {
     walletAddress.value = address
     isConnected.value = true
 
-    // Get the public key from MetaMask
-    const publicKey = await metamaskClient.getPublicKey()
-
-    // Get the public key from the burn gateway using the target address
-    const response = await fetch(`${import.meta.env.VITE_BURN_GATEWAY_PUBLIC_KEY_API}/GetPublicKey`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user: targetAddress.value
-      })
-    })
-    const data = await response.json()
-    
-    if (!data.Data?.publicKey) {
-      throw new Error('Could not retrieve public key from gateway')
-    }
-
-    const keysMatch = await comparePublicKeys(publicKey.publicKey, data.Data.publicKey)
-    if (!keysMatch) {
-      throw new Error('Connected wallet does not match the target address')
-    }
+    // Check that both the wallet and the target address have the same public key
+    await verifyPublicKeyMatch()
 
     // Fetch tokens after verifying keys match
     await fetchTokens()
@@ -262,6 +243,29 @@ async function connectWallet() {
     console.error('Error connecting wallet:', err)
     error.value = err instanceof Error ? err.message : 'Failed to connect wallet'
     isConnected.value = false
+  }
+}
+
+async function verifyPublicKeyMatch() {
+  const publicKey = await metamaskClient.getPublicKey()
+
+  // Get the public key from the burn gateway using the target address
+  const response = await fetch(`${import.meta.env.VITE_BURN_GATEWAY_PUBLIC_KEY_API}/GetPublicKey`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user: targetAddress.value
+    })
+  })
+  const data = await response.json()
+
+  if (!data.Data?.publicKey) {
+    throw new Error('Could not retrieve public key from gateway')
+  }
+
+  const keysMatch = await comparePublicKeys(publicKey.publicKey, data.Data.publicKey)
+  if (!keysMatch) {
+    throw new Error('Connected wallet does not match the target address')
   }
 }
 
